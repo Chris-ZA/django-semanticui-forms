@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
-{% load semanticui %}
+{% load static semanticui %}
+
+{% block page %}form{% endblock %}
+
 
 {% block content %}
 <h1>Example Form</h1>
@@ -8,4 +11,16 @@
 	{% render_form form _help=1 %}
 	<button class="ui submit button">Submit</button>
 </form>
+
+<h1>Example Inline Form</h2>
+<form class="ui form" method="POST">
+	{% csrf_token %}
+	{% render_form form _help=1 _inline=1 %}
+	<button class="ui submit button">Submit</button>
+</form>
+{% endblock %}
+
+
+{% block footerjs %}
+<script src="{% static 'suiforms/filefield.js' %}"></script>
 {% endblock %}

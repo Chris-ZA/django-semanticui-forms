@@ -15,7 +15,7 @@ class CharFieldTestCase(TestCase):
 		Set up testing environment.
 		"""
 		class Form(forms.Form):
-			charfield1 = forms.CharField()
+			charfield1 = forms.CharField(help_text="help me")
 			charfield2 = forms.CharField(widget=forms.TextInput(attrs={
 				"value": "Testing",
 				"_no_label": True
@@ -33,6 +33,7 @@ class CharFieldTestCase(TestCase):
 		self.assertTrue("required field" in html)
 		self.assertTrue("label" in html)
 		self.assertTrue("charfield" in html)
+		self.assertTrue("help me" in html)
 
 
 	def test_overrides(self):
@@ -111,15 +112,15 @@ class ChoiceFieldTestCase(TestCase):
 		"""
 		# From widget attributes, "female" should be set as initial
 		html = render_field(self.form["choicefield2"])
-		self.assertTrue(" value=\"female\"" in html)
+		self.assertTrue("value=\"female\"" in html)
 
 		# From custom arguments, "other" should be set as initial
 		html = render_field(self.form["choicefield1"], value="other")
-		self.assertTrue(" value=\"other\"" in html)
+		self.assertTrue("value=\"other\"" in html)
 
 		# No initial value, value should be an empty string
 		html = render_field(self.form["choicefield3"],)
-		self.assertTrue(" value=\"\"" in html)
+		self.assertTrue("<div class=\"default text\">Select</div>" in html)
 
 
 	def test_icon_dropdown(self):
@@ -127,5 +128,6 @@ class ChoiceFieldTestCase(TestCase):
 		Test that icons are next to values in dropdown.
 		"""
 		html = render_field(
-			self.form["choicefield2"], _override="IconChoiceField")
+			self.form["choicefield2"], _override="IconSelect"
+		)
 		self.assertTrue(" class=\"woman icon\"" in html)

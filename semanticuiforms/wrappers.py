@@ -5,8 +5,9 @@ from django.conf import settings
 FIELD_WRAPPER = getattr(settings, "SUI_FIELD_WRAPPER", (
 	"<div class=\"%(class)sfield\">"
 		"%(label)s"
-		"%(field)s%(help)s"
+		"%(field)s"
 		"%(errors)s"
+		"%(help)s"
 	"</div>"
 ))
 
@@ -50,6 +51,13 @@ CALENDAR_WRAPPER = getattr(settings, "SUI_CALENDAR_WRAPPER", (
 			"%(icon)s%(field)s"
 		"</div>"
 	"</div>"
+))
+
+FILE_WRAPPER = getattr(settings, "SUI_FILE_WRAPPER", (
+	"%(field)s"
+	"<label for=\"%(id)s\" class=\"ui%(style)sbutton\">"
+		"%(icon)s<span>%(text)s</span>"
+	"</label>"
 ))
 
 

@@ -1,15 +1,24 @@
-from django.utils.html import format_html, format_html_join
+from django.utils.html import format_html, format_html_join, escape
 from django.utils.safestring import mark_safe
 from django.forms.utils import flatatt
 
 from . import wrappers
-from .utils import valid_padding, remove_blank_choice, get_choices
+from .utils import pad, get_choices, get_placeholder_text
 
 
 def render_charfield(field, attrs):
 	"""
 	Render the generic CharField.
 	"""
+	return field
+
+
+def render_hiddenfield(field, attrs):
+	"""
+	Return input as a hidden field.
+	"""
+	if not "_no_wrapper" in attrs:
+		attrs["_no_wrapper"] = 1
 	return field
 
 
@@ -25,9 +34,12 @@ def render_booleanfield(field, attrs):
 	"""
 	Render BooleanField with label next to instead of above.
 	"""
-	attrs["_no_label"] = 1  # No normal label for booleanfields
+	attrs.setdefault("_no_label", True)  # No normal label for booleanfields
+	attrs.setdefault("_inline", True)  # Checkbox should be inline
+	field.field.widget.attrs["style"] = "display:hidden"  # Hidden field
+
 	return wrappers.CHECKBOX_WRAPPER % {
-		"style": valid_padding(attrs.get("_style", "")),
+		"style": pad(attrs.get("_style", "")),
 		"field": field,
 		"label": format_html(
 			wrappers.LABEL_TEMPLATE, field.html_name, mark_safe(field.label)
@@ -45,13 +57,15 @@ def render_choicefield(field, attrs, choices=None):
 	if not choices:
 		choices = format_html_join("", wrappers.CHOICE_TEMPLATE, get_choices(field))
 
+	# Accessing the widget attrs directly saves them for a new use after
+	# a POST request
 	field.field.widget.attrs["value"] = field.value() or attrs.get("value", "")
 
 	return wrappers.DROPDOWN_WRAPPER % {
 		"name": field.html_name,
-		"attrs": valid_padding(flatatt(field.field.widget.attrs)),
-		"placeholder": attrs.get("placeholder", "Select"),
-		"style": valid_padding(attrs.get("_style", "")),
+		"attrs": pad(flatatt(field.field.widget.attrs)),
+		"placeholder": attrs.get("placeholder") or get_placeholder_text(),
+		"style": pad(attrs.get("_style", "")),
 		"choices": choices
 	}
 
@@ -64,7 +78,7 @@ def render_iconchoicefield(field, attrs):
 	choices = ""
 
 	# Loop over every choice to manipulate
-	for choice in remove_blank_choice(field.field._choices):
+	for choice in field.field._choices:
 		value = choice[1].split("|")  # Value|Icon
 
 		# Each choice is formatted with the choice value being split with
@@ -86,7 +100,7 @@ def render_countryfield(field, attrs):
 	Render a custom ChoiceField specific for CountryFields.
 	"""
 	choices = ((k, k.lower(), v)
-		for k, v in remove_blank_choice(field.field._choices))
+		for k, v in field.field._choices[1:])
 
 	# Render a `ChoiceField` with all countries
 	return render_choicefield(
@@ -103,8 +117,8 @@ def render_multiplechoicefield(field, attrs, choices=None):
 		"name": field.html_name,
 		"field": field,
 		"choices": choices,
-		"placeholder": attrs.get("placeholder", "Select"),
-		"style": valid_padding(attrs.get("_style", "")),
+		"placeholder": attrs.get("placeholder") or get_placeholder_text(),
+		"style": pad(attrs.get("_style", "")),
 	}
 
 
@@ -114,8 +128,8 @@ def render_datefield(field, attrs, style="date"):
 	"""
 	return wrappers.CALENDAR_WRAPPER % {
 		"field": field,
-		"style": valid_padding(style),
-		"align": valid_padding(attrs.get("_align", "")),
+		"style": pad(style),
+		"align": pad(attrs.get("_align", "")),
 		"icon": format_html(wrappers.ICON_TEMPLATE, attrs.get("_icon")),
 	}
 
@@ -134,32 +148,50 @@ def render_datetimefield(field, attrs):
 	return render_datefield(field, attrs, "datetime")
 
 
+def render_filefield(field, attrs):
+	"""
+	Render a typical File Field.
+	"""
+	field.field.widget.attrs["style"] = "display:none"
+
+	if not "_no_label" in attrs:
+		attrs["_no_label"] = True
+
+	return wrappers.FILE_WRAPPER % {
+		"field": field,
+		"id": "id_" + field.name,
+		"style": pad(attrs.get("_style", "")),
+		"text": escape(attrs.get("_text", "Select File")),
+		"icon": format_html(wrappers.ICON_TEMPLATE, attrs.get("_icon", "file outline"))
+	}
+
+
 FIELDS = {
-	# Choice Fields
-	"ChoiceField": render_choicefield,
-	"TypedChoiceField": render_choicefield,
-	"LazyTypedChoiceField": render_choicefield,
-	"FilePathField": render_choicefield,
-	"ModelChoiceField": render_choicefield,
+	# Generic Fields
+	None: render_charfield,
 
-	# Multi-choice Fields
-	"MultipleChoiceField": render_multiplechoicefield,
-	"TypedMultipleChoiceField": render_multiplechoicefield,
-	"ModelMultipleChoiceField": render_multiplechoicefield,
+	# Character Fields
+	"TextInput": render_charfield,
 
-	# Custom-choice fields
-	"CountryField": render_countryfield,
-	"IconChoiceField": render_iconchoicefield,
+	# Hidden Fields
+	"HiddenInput": render_hiddenfield,
+	"MultipleHiddenInput": render_hiddenfield, 
 
 	# Boolean Fields
-	"NullBooleanField": render_nullbooleanfield,
-	"BooleanField": render_booleanfield,
+	"CheckboxInput": render_booleanfield,
+	"NullBooleanSelect": render_nullbooleanfield,
 
-	# Date/time pickers
-	"DateField": render_datefield,
-	"TimeField": render_timefield,
-	"DateTimeField": render_datetimefield,
+	# Choice Fields
+	"Select": render_choicefield,
+	"IconSelect": render_iconchoicefield,
+	"SelectMultiple": render_multiplechoicefield,
+	"CountrySelect": render_countryfield,
 
-	# Default
-	"_": render_charfield
+	# Date/Time Fields
+	"TimeInput": render_timefield,
+	"DateInput": render_datefield,
+	"DateTimeInput": render_datetimefield,
+
+	# File Fields
+	"FileInput": render_filefield,
 }

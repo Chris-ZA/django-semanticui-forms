@@ -16,13 +16,13 @@ To render a form, it's as simple as `{% render_form my_form %}`
 It is possible to render each field individually allowing for more
 customization within the template. `{% render_field my_form.field %}`  
 
-### Attributes
+## Attributes
 #### Form Attributes  
 Form attributes given to the template tag that are not specified for internal
 use are passed onto each field.
 
 It is possible to exclude fields from `render_form` using the `exclude` parameter.
-Fields to be excluded should be separated by comments.  
+Fields to be excluded should be separated by commas.  
 ```html
 {% render_form my_form exclude='field1,field3' %}
 ```  
@@ -33,7 +33,7 @@ to each field in that form.
 For good use: `{% render_form my_form _help=1 %}` will display the field's
 help_text on all fields.  
 
-#### Field Attributes
+ #### Field Attributes
 Any attribute can be assigned to most fields. This can be done by either
 assigning within the form class or on-the-fly in the template.
 
@@ -54,7 +54,9 @@ can be set in the form class or as an argument like above.
 * `_no_label`: Do not show label
 * `_no_required`: Do not show required asterisk
 * `_no_errors`: Do not show inline errors
-* `_override`: Render as a different field type
+* `_inline`: Adds inline class to field
+* `_field_class`: Allows for custom field classes
+* `_override`: Render as a different input type
 * `_style`: Stylize specific fields (BoleanField, ChoiceField)
     * `BooleanField`: set to 'toggle' or 'slider'
     * `ChoiceField`: set to 'search' or 'multiple' and more
@@ -70,21 +72,22 @@ optionally `_align` to your arguments.
 {% render_field my_form.field _icon='star' _align='left' %}
 ```
 
+## Custom/Overriding Fields
 #### Override to render as different field
 Overriding the function that renders the field is done using the `_override`
-attribute. This is useful for things like using `CountryField` as it is
-not its own field type.
+attribute. This is useful for things like using `CountrySelect` as it is
+not its own field type.  
 
 
-### Special ChoiceFields
+### Custom ChoiceFields
 
-**CountryField**  
-`CountryField` from the `django-countries` package can be used to create a nice
+**CountrySelect**  
+`CountrySelect` from the `django-countries` package can be used to create a nice
 field that displays a list of countries alongside their flags, to access it you
-must set the `_override` attribute to `CountryField`.
+must set the `_override` attribute to `CountrySelect`.
 
 **Icon ChoiceField**  
-`IconChoiceField` can be used with overriding just like `CountryField`. This
+`IconSelect` can be used with overriding just like `CountrySelect`. This
 field is useful since icons can be placed next to the values in the field.
 
 ```python
@@ -97,11 +100,94 @@ choices = (
 )
 
 # Template
-{% render_field my_form.gender _override='IconChoiceField' %}
+{% render_field my_form.gender _override='IconSelect' %}
+```
+
+## Layouts
+Using Semantic UI's form layout classes with <i>Semantic UI Forms for Django</i> is simple.  
+Within your form's Meta class, simply create a `layout` list. Within that list,
+create tuples with an function name as the first value, and the value as the second.  
+
+Functions names are as followed:
+* `Text` is for any text or HTML markup. Text in this is considered safe.
+* `Field`'s value must be the name of a field.
+* `[X] Fields` are containers. It's value must include `Field` items or more
+`[X] Field` items. `[X]` should be replaced, either by a number or a class.
+All items inside this will be wrapped with a `div` that has the class of the key.
+	* `Four Fields`
+	* `Six Fields`
+	* `Inline Fields`
+	* `Equal Width Fields`
+
+To set "wideness" of a specific field, you must add it to the `_field_class`
+attribute on your field. It cannot be done in the `layout`.
+
+```python
+class ExampleLayoutForm(forms.Form):
+	class Meta:
+		layout = [
+			("Text", "<h4 class=\"ui dividing header\">Personal Details</h4>"),
+			("Three Fields",
+				("Field", "first_name"),
+				("Field", "middle_initial"),
+				("Field", "last_name"),
+			),
+
+			("Text", "<h4 class=\"ui dividing header\">More Details</h4>"),
+			("Inline Fields",
+				("Field", "website"),
+				("Field", "email"),
+			),
+
+			("Text", "<h4 class=\"ui dividing header\">Complicated Details</h4>"),
+			("Four Fields",
+				("Field", "first_name"),
+				("Field", "middle_initial"),
+				("Field", "last_name"),
+				("Two Fields",
+					("Field", "username"),
+					("Field", "email"),
+				),
+			),
+
+			("Field", "helpful")
+		]
+
+
+	username = forms.CharField()
+	first_name = forms.CharField()
+	middle_initial = forms.CharField()
+	last_name = forms.CharField()
+	website = forms.CharField()
+	email = forms.EmailField()
+	phone_number = forms.CharField()
+	helpful = forms.BooleanField()
 ```
 
 
-### Testing
+## Settings
+Override wrappers by finding the wrapper variable name and prepending `SUI_` to it
+and inserting it into your `settings.py`.  
+```python
+SUI_ERROR_WRAPPER = "<div class=\"ui red pointing prompt label\">%(message)s</div>"
+```   
+
+You can also change the default placeholder text.
+```python
+SUI_PLACEHOLDER_TEXT = "Select Option"
+```
+
+## Basic Semantic UI Validation Generator
+<i>Semantic UI Forms for Django</i> can generate a basic validation configuration for your form. The generator is very basic and does not have many features. It is only intended to give you a starting point.  
+
+View https://semantic-ui.com/behaviors/form.html for more details.
+
+```bash
+python manage.py semanticuivalidation app.forms.ExampleForm [--shorthand]
+```
+
+
+## Testing
 1. Create a virtual environment.  
 ```bash
 virtualenv -p $(which python3) .env
@@ -112,13 +198,18 @@ virtualenv -p $(which python3) .env
 source .env/bin/activate
 ```
 
-3. Make and run migrations for testing purposes.
+3. Set current directory to `examples` app and then install Python requirements.
+```bash
+pip install -r requirements.txt
+```
+
+4. Make and run migrations for testing purposes.
 ```bash
 python manage.py makemigrations 
 python manage.py migrate 
 ```
 
-4. Run tests from `examples` app.
+5. Run tests.
 ```bash
 python manage.py test semanticuiforms 
 ```

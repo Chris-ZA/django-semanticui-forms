@@ -3,14 +3,22 @@
 <head>
 	<title>Semantic UI Forms for Django</title>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.2/semantic.min.css">
-	<link rel="stylesheet" href="{% static 'calendar.css' %}">
-	</head>
+	<link rel="stylesheet" href="{% static 'calendar.css' %}">	
+	<style>
+		.ui.help {
+			color: rgba(0, 0, 0, .4);
+			font-size: .875em;
+		}
+	</style>
+</head>
 <body>
 	<nav class="ui top menu">
 		<div class="header item">Semantic UI Forms for Django</div>
-		<a href="{% url 'form' %}" class="item">Form</a>
-		<a href="{% url 'modelform' %}" class="item">Model Form</a>
-		<a href="{% url 'manyfieldsform' %}" class="item">Many Fields Form</a>
+		<a href="{% url 'form' %}" class="page-form item">Form</a>
+		<a href="{% url 'modelform' %}" class="page-modelform item">Model Form</a>
+		<a href="{% url 'manyfieldsform' %}" class="page-manyfieldsform item">Many Fields Form</a>
+		<a href="{% url 'choicefieldsform' %}" class="page-choicefieldsform item">Choice Fields Form</a>
+		<a href="{% url 'layoutform' %}" class="page-layoutform item">Layout Form</a>
 	</nav>
 
 	<main class="ui page container">
@@ -19,10 +27,12 @@
 		{% endblock %}
 	</main>
 
+	{% block footerjs %}{% endblock %}
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.2/semantic.min.js"></script>
 	<script src="{% static 'calendar.js' %}"></script>
 	<script>
+		$(".page-{% block page %}unknown{% endblock %}").addClass("active");
 		$(".ui.dropdown").dropdown();
 		$(".ui.form").form();
 		$(".ui.date.calendar").calendar({ type: "date" });
